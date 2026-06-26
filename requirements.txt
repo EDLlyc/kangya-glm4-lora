@@ -6,3 +6,4 @@ sentencepiece
 protobuf
 huggingface-hub
 accelerate
+gradio>=4.0.0

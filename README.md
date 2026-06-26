@@ -60,16 +60,26 @@ $env:HF_ENDPOINT="https://hf-mirror.com"
 
 ### 4. 运行推理
 
-**8GB 显存用户（4-bit 量化）：**
+#### 网页版（推荐）
+
+**8GB 显存用户：**
+
+```bash
+python web_ui.py --load_in_4bit
+```
+
+**16GB 及以上显存用户：**
+
+```bash
+python web_ui.py
+```
+
+然后打开浏览器访问：`http://localhost:7860`
+
+#### 命令行版
 
 ```bash
 python inference.py --load_in_4bit
-```
-
-**16GB 及以上显存用户（fp16）：**
-
-```bash
-python inference.py
 ```
 
 **单条测试：**

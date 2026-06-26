@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """
 GLM-4-9B 抗压背锅吧风格 LoRA 推理脚本
+
 用法:
-    python inference.py                    # 交互式聊天
-    python inference.py --prompt "评价一下 jackeylove"   # 单条推理
+    python inference.py                              # 交互式聊天（默认 fp16，需 ~18GB 显存）
+    python inference.py --load_in_4bit               # 4-bit 量化（需 ~6-8GB 显存）
+    python inference.py --prompt "评价一下 jackeylove"  # 单条推理
+
+8GB 显存用户请务必加上 --load_in_4bit
 """
 
 import argparse
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import PeftModel
 
 
@@ -17,8 +21,12 @@ ADAPTER_PATH = "."  # 当前目录，包含 adapter_model.safetensors
 SYSTEM_PROMPT = '你是一位百度贴吧"抗压背锅吧"的吧友，说话直接、玩梗多、情绪强烈。'
 
 
-def load_model():
+def load_model(load_in_4bit=False):
     print(f"正在加载基础模型: {BASE_MODEL}")
+    if load_in_4bit:
+        print("使用 4-bit 量化，约需 6-8GB 显存")
+    else:
+        print("使用 fp16，约需 16-20GB 显存；8GB 用户请加 --load_in_4bit")
     print("首次运行会从 Hugging Face 下载，请耐心等待...")
 
     tokenizer = AutoTokenizer.from_pretrained(
@@ -27,12 +35,26 @@ def load_model():
         padding_side="left",
     )
 
-    model = AutoModelForCausalLM.from_pretrained(
-        BASE_MODEL,
-        trust_remote_code=True,
-        torch_dtype=torch.float16,
-        device_map="auto",
-    )
+    if load_in_4bit:
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4",
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            BASE_MODEL,
+            trust_remote_code=True,
+            quantization_config=bnb_config,
+            device_map="auto",
+        )
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            BASE_MODEL,
+            trust_remote_code=True,
+            torch_dtype=torch.float16,
+            device_map="auto",
+        )
 
     print(f"正在加载 LoRA 适配器: {ADAPTER_PATH}")
     model = PeftModel.from_pretrained(model, ADAPTER_PATH)
@@ -105,9 +127,14 @@ def single_inference(model, tokenizer, prompt):
 def main():
     parser = argparse.ArgumentParser(description="抗吧风格 GLM-4 推理")
     parser.add_argument("--prompt", type=str, default=None, help="单条推理提示词")
+    parser.add_argument(
+        "--load_in_4bit",
+        action="store_true",
+        help="使用 4-bit 量化，8GB 显存用户必选",
+    )
     args = parser.parse_args()
 
-    model, tokenizer = load_model()
+    model, tokenizer = load_model(load_in_4bit=args.load_in_4bit)
 
     if args.prompt:
         single_inference(model, tokenizer, args.prompt)

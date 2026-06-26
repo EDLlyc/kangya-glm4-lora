@@ -4,8 +4,12 @@
 
 ## 硬件要求
 
-- **GPU**: 显存 ≥ 16GB（推荐 24GB，如 RTX 4090）
-- **内存**: ≥ 32GB
+| 模式 | 显存需求 | 说明 |
+|------|---------|------|
+| 默认 fp16 | ≥ 16GB，推荐 24GB | 速度快，显存占用大 |
+| 4-bit 量化 | ≥ 6GB，推荐 8GB | 速度慢一些，8GB 显卡可跑 |
+
+- **内存**: ≥ 16GB（推荐 32GB）
 - **磁盘**: ≥ 20GB 空闲空间
 
 ## 仓库文件
@@ -56,7 +60,13 @@ $env:HF_ENDPOINT="https://hf-mirror.com"
 
 ### 4. 运行推理
 
-**交互式聊天：**
+**8GB 显存用户（4-bit 量化）：**
+
+```bash
+python inference.py --load_in_4bit
+```
+
+**16GB 及以上显存用户（fp16）：**
 
 ```bash
 python inference.py
@@ -65,7 +75,7 @@ python inference.py
 **单条测试：**
 
 ```bash
-python inference.py --prompt "评价一下 jackeylove"
+python inference.py --load_in_4bit --prompt "评价一下 jackeylove"
 ```
 
 ## 训练参数
